@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --config renderer/vite.config.ts",
-    "build": "rimraf renderer/dist && vite build --config renderer/vite.config.ts",
-    "preview": "vite preview --config renderer/vite.config.ts",
-    "clean": "rimraf renderer/dist"
+    "dev": "vite",
+    "build": "rimraf dist && vite build",
+    "preview": "vite preview",
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "@ricky0123/vad-react": "^0.0.36",

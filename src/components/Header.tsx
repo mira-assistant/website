@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { serviceApi } from '@/lib/api/service';
 import Tooltip from '@/components/ui/Tooltip';
@@ -15,6 +15,7 @@ interface HeaderProps {
 
 export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: HeaderProps) {
   const { logout } = useAuth();
+  const navigate = useNavigate();
   const peopleButtonRef = useRef<HTMLButtonElement>(null);
 
   const [clientName, setClientName] = useState('desktop-client');
@@ -255,7 +256,11 @@ export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: Head
 
         {/* Logout Button */}
         <button
-          onClick={logout}
+          type="button"
+          onClick={async () => {
+            await logout();
+            navigate('/login', { replace: true });
+          }}
           className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/50 border border-[#e5e7eb] text-red-400 transition-colors duration-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600"
           title="Logout"
         >

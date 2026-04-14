@@ -1,20 +1,23 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "lib": ["ES2020"],
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
+    "allowJs": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["shared/*"],
-      "@main/*": ["main/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["./src/shared/*"]
     }
   },
-  "include": ["main/**/*", "shared/**/*"], // Added shared here
-  "exclude": ["node_modules", "renderer"]
+  "include": ["src/**/*", "vite.config.ts"]
 }

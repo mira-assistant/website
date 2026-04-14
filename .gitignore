@@ -13,12 +13,9 @@
 # testing
 /coverage
 
-# next.js
-renderer/.next
-/out/
-
 # production
 /build
+/dist
 
 # misc
 .DS_Store
@@ -40,7 +37,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Electron
-dist/
 release/
 out/
