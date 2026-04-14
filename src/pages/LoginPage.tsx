@@ -38,7 +38,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden px-4 py-10">
+    <div className="relative min-h-screen overflow-x-hidden px-4 flex items-center justify-center">
       <div className="absolute inset-0 bg-white/35" aria-hidden />
       <div
         className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_0%,rgba(0,255,136,0.14),transparent_55%)]"
@@ -52,7 +52,7 @@ export default function LoginPage() {
       <div className="absolute -right-20 bottom-1/4 h-72 w-72 rounded-full bg-teal-200/30 blur-[100px]" aria-hidden />
       <div className="absolute inset-0 backdrop-blur-[28px] backdrop-saturate-150" aria-hidden />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-lg flex-col items-center justify-center pt-4">
+      <div className="relative z-10 mx-auto flex w-full max-w-lg flex-col items-center justify-center">
         <div className="mb-6 flex w-full max-w-[420px] justify-start">
           <Link
             to="/"
