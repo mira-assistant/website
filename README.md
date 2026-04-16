@@ -1,29 +1,46 @@
-# Mira website
+# Mira Website
 
-Vite + React SPA. See [`.env.example`](./.env.example) for `MIRA_API_URL` and `BETA`.
+Mira Website is the browser client for a realtime voice-and-conversation product.  
+It combines authenticated session management, low-latency event streaming, and state-heavy UI flows so users can move from live interaction to structured conversation history without losing continuity.
 
-## Development
+## Why This Is Technically Hard
+
+- Realtime UI has to stay consistent across reconnects, duplicate events, and partial data.
+- Client identity is stateful and conflict-prone (same user across tabs/devices), requiring clear recovery UX.
+- Authenticated APIs and socket channels must stay synchronized while access tokens refresh in-flight.
+- Conversation timelines require careful ordering and grouping across mixed timestamp formats and delayed lookups.
+
+## Architecture Highlights
+
+- React + TypeScript single-page app with layered contexts (`Auth`, `Service`, `Audio`, `Toast`).
+- Shared API client with token-aware request/response interceptors and refresh retry path.
+- Realtime transport using WebSocket with heartbeat, exponential reconnect backoff, and listener fan-out.
+- Service lifecycle orchestration: register client, stream status updates, and best-effort deregistration on page unload.
+- Conversation UI pipeline that deduplicates incremental events and merges them with fetched conversation/person metadata.
+
+## Engineering Decisions and Tradeoffs
+
+- **Resilience over strict immediacy:** realtime streams are complemented by API fetches to heal missing context.
+- **Best-effort cleanup:** unload/pagehide deregistration uses `keepalive` fetch for practical session hygiene.
+- **Predictable API versioning:** environment-driven `/api/v1` vs `/api/v2` prefix keeps rollout control explicit.
+- **Cross-runtime compatibility:** browser and Electron pathways are supported without duplicating core domain logic.
+
+## Reliability and Quality Signals
+
+- Typed interfaces across auth, interaction, and conversation domains.
+- Explicit timeout/retry behavior for network-sensitive operations.
+- Defensive UI updates (dedupe logic, conflict guards, fallback handling) to reduce bad states.
+- Linting and modern build tooling are configured for consistent delivery.
+
+## Product Impact
+
+- Enables continuous, realtime interaction with fast feedback loops.
+- Makes conversation history auditable and navigable for users after live events.
+- Improves trust through conflict visibility, graceful failure handling, and recoverable session behavior.
+
+## Minimal Local Run
 
 ```bash
 npm install
 npm run dev
 ```
-
-## Environment (`MIRA_API_URL`, `BETA`)
-
-- **`MIRA_API_URL`** — API origin **without** `/api/v1` (that suffix is added in code).
-- **`BETA`** — exactly `true` selects `/api/v2`; anything else (including unset) uses **`/api/v1`**. Production builds should use **`BETA=false`**.
-
-Copy `.env.example` to `.env` (or `.env.local`) for local development.
-
-## Using a production API from localhost
-
-Set `MIRA_API_URL` in `.env` to your deployed API (e.g. Railway). The app uses **HTTPS REST** and **`wss://`** for realtime events, so this works from `npm run dev` without tunnels.
-
-Your backend must **allow the browser origin** (e.g. `http://localhost:5173`) for both HTTP and WebSocket if you restrict `CORS_ORIGINS` (wildcard `*` already allows everything).
-
-## Production builds (CI / hosting)
-
-Set `MIRA_API_URL` and `BETA=false` in the environment (or write a `.env.production` with those keys) **before** `vite build` so values are inlined.
-
-On **GitHub Actions**, expose the org secret to the build (e.g. `MIRA_API_URL: ${{ secrets.MIRA_API_URL }}`) so `vite build` inlines the same value as the Electron release pipeline.

@@ -1,6 +1,11 @@
 {
   "name": "mira-website",
-  "version": "1.0.2",
+  "version": "1.1.0",
+  "author": {
+    "name": "Ankur Desai",
+    "email": "ardusa05@gmail.com",
+    "url": "https://ardusa.dev/"
+  },
   "private": true,
   "type": "module",
   "scripts": {

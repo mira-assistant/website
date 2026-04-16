@@ -33,16 +33,17 @@ export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: Head
 
   // Debounce timer
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const latestCheckId = useRef(0);
 
   useEffect(() => {
     setInputValue(clientName);
   }, [clientName]);
 
   // Fetch client list (with caching)
-  const fetchClientList = useCallback(async (): Promise<string[]> => {
+  const fetchClientList = useCallback(async (forceRefresh = false): Promise<string[]> => {
     const now = Date.now();
 
-    if (now - cacheTimestamp.current < CACHE_DURATION && clientListCache.current.length > 0) {
+    if (!forceRefresh && now - cacheTimestamp.current < CACHE_DURATION && clientListCache.current.length > 0) {
       return clientListCache.current;
     }
 
@@ -58,33 +59,44 @@ export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: Head
   }, []);
 
   // Check if client name is available
-  const checkAvailability = useCallback(async (name: string) => {
+  const checkAvailability = useCallback(async (name: string, forceRefresh = false): Promise<boolean | null> => {
     if (!name || name.trim() === '') {
       setIsAvailable(null);
       setShowTooltip(false);
-      return;
+      return null;
     }
 
     // Don't check if it's the current name
     if (name === clientName) {
       setIsAvailable(null);
       setShowTooltip(false);
-      return;
+      return null;
     }
 
     setIsChecking(true);
+    const checkId = ++latestCheckId.current;
 
     try {
-      const existingClients = await fetchClientList();
+      const existingClients = await fetchClientList(forceRefresh);
       const available = !existingClients.includes(name);
+      if (checkId !== latestCheckId.current) {
+        return null;
+      }
       setIsAvailable(available);
       setShowTooltip(true); // Show tooltip with result
+      return available;
     } catch (error) {
       console.error('Failed to check client name availability:', error);
+      if (checkId !== latestCheckId.current) {
+        return null;
+      }
       setIsAvailable(null);
       setShowTooltip(false);
+      return null;
     } finally {
-      setIsChecking(false);
+      if (checkId === latestCheckId.current) {
+        setIsChecking(false);
+      }
     }
   }, [clientName, fetchClientList]);
 
@@ -92,6 +104,8 @@ export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: Head
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.trim();
     setInputValue(value);
+    latestCheckId.current += 1;
+    setIsChecking(false);
 
     // Clear previous timer
     if (debounceTimer.current) {
@@ -104,7 +118,7 @@ export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: Head
 
     // Set new debounced check
     debounceTimer.current = setTimeout(() => {
-      checkAvailability(value);
+      void checkAvailability(value);
     }, 500);
   };
 
@@ -123,7 +137,12 @@ export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: Head
 
       if (!newName) return;
       if (newName === clientName) return;
-      if (isAvailable === false) return;
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+
+      const availability = await checkAvailability(newName, true);
+      if (availability !== true) return;
 
       setIsRegistering(true);
       setShowTooltip(false); // Hide tooltip when saving
