@@ -93,14 +93,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isVADReady, setIsVADReady] = useState(false);
 
-  // VAD / ONNX load wasm via dynamic import(). A dev base of "/" becomes
-  // "/ort-wasm-*.mjs", which Vite treats as importing from /public (disallowed).
-  // Resolve BASE_URL against the document so paths are same-origin absolute URLs.
+  // VAD/ONNX assets live in `/public` and must resolve from the app origin,
+  // not the current client route (e.g. `/app`).
   function getAssetPath() {
-    if (import.meta.env.DEV) {
-      return new URL(import.meta.env.BASE_URL, window.location.href).href;
-    }
-    return window.location.href.replace('index.html', '').replace(/\/$/, '') + '/';
+    return new URL(import.meta.env.BASE_URL, window.location.origin).href;
   }
 
   const assetPath = getAssetPath();
