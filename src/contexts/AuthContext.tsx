@@ -1,5 +1,5 @@
 
-import { createContext, useCallback, useEffect, useState } from 'react';
+import { createContext, useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '@shared/api/client';
 import { authApi } from '@/lib/api/auth';
 import { webTokenStore } from '@/lib/webTokenStore';
@@ -12,6 +12,7 @@ interface AuthContextType {
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   saveTokens: (newTokens: AuthTokens) => Promise<void>;
+  getAccessToken: () => Promise<string | null>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,12 +55,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Setup axios interceptors
+  const tokensRef = useRef<AuthTokens | null>(null);
+  tokensRef.current = tokens;
+
+  // Setup axios interceptors once; read tokens from tokensRef so Authorization is never stale.
   useEffect(() => {
     const requestIntercept = api.interceptors.request.use(
       (config) => {
-        if (tokens?.accessToken) {
-          config.headers.Authorization = `Bearer ${tokens.accessToken}`;
+        const t = tokensRef.current;
+        if (t?.accessToken) {
+          config.headers.Authorization = `Bearer ${t.accessToken}`;
         }
         return config;
       },
@@ -70,18 +75,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
+        const t = tokensRef.current;
 
         // If 401 and we haven't retried, try to refresh token
-        if (error.response?.status === 401 && !originalRequest._retry && tokens?.refreshToken) {
+        if (error.response?.status === 401 && !originalRequest._retry && t?.refreshToken) {
           originalRequest._retry = true;
 
           try {
             // Use authApi to refresh
-            const refreshResponse = await authApi.refresh(tokens.refreshToken);
+            const refreshResponse = await authApi.refresh(t.refreshToken);
 
             const newTokens: AuthTokens = {
               accessToken: refreshResponse.access_token,
-              refreshToken: refreshResponse.refresh_token || tokens.refreshToken,
+              refreshToken: refreshResponse.refresh_token || t.refreshToken,
             };
 
             await persistTokens(newTokens.accessToken, newTokens.refreshToken);
@@ -114,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       api.interceptors.request.eject(requestIntercept);
       api.interceptors.response.eject(responseIntercept);
     };
-  }, [tokens]);
+  }, []);
 
   // Initialize auth state on mount - verify tokens with refresh
   useEffect(() => {
@@ -219,6 +225,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(true);
   }, []);
 
+  const getAccessToken = useCallback(async (): Promise<string | null> => {
+    return tokens?.accessToken ?? null;
+  }, [tokens?.accessToken]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -228,6 +238,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         saveTokens,
+        getAccessToken,
       }}
     >
       {children}

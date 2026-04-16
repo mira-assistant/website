@@ -2,11 +2,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useService } from '@/hooks/useService';
 import { serviceApi } from '@/lib/api/service';
 import Tooltip from '@/components/ui/Tooltip';
 import PeoplePanel from '@/components/PeoplePanel';
 import { cn } from '@/lib/cn';
-import { getStoredClientName, setStoredClientName } from '@/lib/clientNameStorage';
+import { setStoredClientName } from '@/lib/clientNameStorage';
 
 interface HeaderProps {
   isPeoplePanelOpen: boolean;
@@ -16,10 +17,10 @@ interface HeaderProps {
 export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: HeaderProps) {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const { clientName, setClientName, registrationConflict } = useService();
   const peopleButtonRef = useRef<HTMLButtonElement>(null);
 
-  const [clientName, setClientName] = useState('desktop-client');
-  const [inputValue, setInputValue] = useState('desktop-client');
+  const [inputValue, setInputValue] = useState(clientName);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -33,25 +34,9 @@ export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: Head
   // Debounce timer
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Load client name from storage on mount
   useEffect(() => {
-    const loadClientName = async () => {
-      if (window.electronAPI) {
-        const result = await window.electronAPI.getClientName();
-        if (result.success && result.clientName) {
-          setClientName(result.clientName);
-          setInputValue(result.clientName);
-        }
-      } else {
-        const saved = getStoredClientName();
-        if (saved) {
-          setClientName(saved);
-          setInputValue(saved);
-        }
-      }
-    };
-    loadClientName();
-  }, []);
+    setInputValue(clientName);
+  }, [clientName]);
 
   // Fetch client list (with caching)
   const fetchClientList = useCallback(async (): Promise<string[]> => {
@@ -169,8 +154,9 @@ export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: Head
     }
   };
 
-  // Determine border color based on availability
+  // Determine border color based on availability / registration conflict
   const getBorderColor = () => {
+    if (registrationConflict) return 'border-red-500';
     if (isChecking) return 'border-yellow-400';
     if (isAvailable === false) return 'border-red-500';
     if (isAvailable === true && inputValue !== clientName) return 'border-green-500';
@@ -179,12 +165,14 @@ export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: Head
 
   // Determine tooltip content and variant
   const getTooltipContent = () => {
+    if (registrationConflict) return 'Not registered — name in use';
     if (isAvailable === true) return 'Available';
     if (isAvailable === false) return 'Taken';
     return '';
   };
 
   const getTooltipVariant = (): 'success' | 'error' => {
+    if (registrationConflict) return 'error';
     return isAvailable === true ? 'success' : 'error';
   };
 
@@ -214,7 +202,7 @@ export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: Head
           <Tooltip
             content={getTooltipContent()}
             variant={getTooltipVariant()}
-            show={showTooltip && isAvailable !== null}
+            show={registrationConflict || (showTooltip && isAvailable !== null)}
             position="bottom"
           >
             <div className="relative">
@@ -226,7 +214,7 @@ export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: Head
                 onKeyDown={handleKeyDown}
                 disabled={isRegistering}
                 maxLength={50}
-                placeholder="desktop-client"
+                placeholder="web-client"
                 className={`w-[140px] px-2.5 py-1.5 text-sm text-center text-gray-900 bg-[#f0fffa] border-2 ${getBorderColor()} rounded-xl transition-all duration-300 focus:outline-none focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed`}
               />
               {isChecking && (

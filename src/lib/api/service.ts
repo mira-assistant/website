@@ -5,13 +5,10 @@ import { buildEndpoint, getClientIpAddresses, retryWithBackoff } from './utils';
 // Types
 interface ClientRegistration {
   client_id: string;
-  webhook_url?: string;
   metadata?: Record<string, unknown>;
 }
 
 interface ClientResponse {
-  webhook_url: string | null;
-  ip_address: string;
   connected_at: string;
   metadata?: Record<string, unknown>;
 }
@@ -21,12 +18,11 @@ export const serviceApi = {
    * Register client with network
    * POST /api/v1/service/clients
    */
-  async registerClient(clientId: string, webhookUrl?: string): Promise<ClientResponse> {
+  async registerClient(clientId: string): Promise<ClientResponse> {
     const ipAddresses = getClientIpAddresses();
 
     const registration: ClientRegistration = {
       client_id: clientId,
-      webhook_url: webhookUrl,
       metadata: {
         local_ip: ipAddresses.local,
         external_ip: ipAddresses.external,

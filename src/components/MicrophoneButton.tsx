@@ -13,7 +13,10 @@ export default function MicrophoneButton({ disableSpaceToggle = false }: Microph
     isServiceEnabled,
     toggleService,
     isTogglingService,
+    registrationConflict,
   } = useService();
+
+  const micBlocked = isTogglingService || registrationConflict;
 
   // Spacebar activation
   // Spacebar activation (disabled when panel open)
@@ -21,7 +24,7 @@ export default function MicrophoneButton({ disableSpaceToggle = false }: Microph
     if (disableSpaceToggle) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !isTogglingService) {
+      if (e.code === 'Space' && !micBlocked) {
         e.preventDefault();
         toggleService();
       }
@@ -29,10 +32,10 @@ export default function MicrophoneButton({ disableSpaceToggle = false }: Microph
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isTogglingService, toggleService, disableSpaceToggle]);
+  }, [micBlocked, toggleService, disableSpaceToggle]);
 
   const handleClick = async () => {
-    if (isTogglingService) return;
+    if (micBlocked) return;
     await toggleService();
   };
 
@@ -40,13 +43,13 @@ export default function MicrophoneButton({ disableSpaceToggle = false }: Microph
     <div className="flex flex-col items-center gap-10">
       <motion.button
         onClick={handleClick}
-        disabled={isTogglingService}
-        whileHover={!isTogglingService && !isServiceEnabled ? {
+        disabled={micBlocked}
+        whileHover={!micBlocked && !isServiceEnabled ? {
           scale: 1.05,
           rotate: [0, -2, 2, -2, 2, 0],
           transition: { duration: 0 }
         } : {}}
-        whileTap={!isTogglingService ? {
+        whileTap={!micBlocked ? {
           scale: 0.95,
           rotate: isServiceEnabled ? 0 : [0, -5, 5, -5, 5, 0]
         } : {}}
@@ -54,7 +57,7 @@ export default function MicrophoneButton({ disableSpaceToggle = false }: Microph
           'relative w-40 h-40 rounded-full transition-all duration-300 border-[3px] border-[rgba(255,255,255,0.3)]',
           'flex items-center justify-center',
           'focus:outline-none focus:ring-4 focus:ring-[#00ff88]/30',
-          isTogglingService
+          micBlocked
             ? 'bg-[#6b7280] cursor-not-allowed opacity-60'
             : isServiceEnabled
               ? 'bg-linear-to-br from-[#ff4444] to-[#e53e3e] shadow-[0_10px_30px_rgba(255,68,68,0.6),0_0_30px_rgba(255,68,68,0.4),0_0_60px_rgba(255,68,68,0.2)] cursor-pointer'
@@ -62,7 +65,7 @@ export default function MicrophoneButton({ disableSpaceToggle = false }: Microph
         )}
       >
         {/* Red Ripple Waves - when service enabled */}
-        {isServiceEnabled && !isTogglingService && (
+        {isServiceEnabled && !micBlocked && (
           <>
             <motion.div
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full border-2 border-[rgba(255,68,68,0.6)] rounded-full bg-transparent pointer-events-none"
@@ -106,7 +109,7 @@ export default function MicrophoneButton({ disableSpaceToggle = false }: Microph
         )}
 
         {/* Green pulse effect when disabled (inactive) */}
-        {!isServiceEnabled && !isTogglingService && (
+        {!isServiceEnabled && !micBlocked && (
           <motion.div
             className="absolute inset-0 rounded-full bg-linear-to-br from-[#00ff88] to-[#00e676] opacity-0"
             animate={{

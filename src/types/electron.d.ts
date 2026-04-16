@@ -20,7 +20,6 @@ export interface ElectronAPI {
   clearTokens: () => Promise<{ success: boolean; error?: string }>;
   hasTokens: () => Promise<{ success: boolean; hasTokens?: boolean; error?: string }>;
   onAppClosing: (callback: () => void) => void;
-  getWebhookUrl: () => Promise<string>;
   onNewInteraction: (callback: (payload: any) => void) => () => void;
   onWebhookAction: (callback: (payload: { event?: string; data?: ActionWebhookPayload }) => void) => () => void;
   onServiceStatusChanged: (callback: (status: { enabled: boolean }) => void) => () => void;

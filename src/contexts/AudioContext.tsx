@@ -89,7 +89,7 @@ function encodeWAV(samples: Float32Array, sampleRate: number = 16000): ArrayBuff
 }
 
 export function AudioProvider({ children }: { children: React.ReactNode }) {
-  const { clientName, isServiceEnabled } = useService();
+  const { clientName, isServiceEnabled, registrationConflict } = useService();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isVADReady, setIsVADReady] = useState(false);
 
@@ -151,18 +151,20 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
   }, [vad.loading, vad.errored]);
 
-  // Control VAD listening based on service state
+  // Control VAD listening based on service state (pause if client registration conflict)
   useEffect(() => {
     if (!isVADReady) return; // Wait for VAD to be ready
 
-    if (isServiceEnabled && !vad.listening) {
+    const shouldListen = isServiceEnabled && !registrationConflict;
+
+    if (shouldListen && !vad.listening) {
       console.log('[VAD] Starting listening');
       vad.start();
-    } else if (!isServiceEnabled && vad.listening) {
+    } else if (!shouldListen && vad.listening) {
       console.log('[VAD] Pausing listening');
       vad.pause();
     }
-  }, [isServiceEnabled, vad.listening, isVADReady]);
+  }, [isServiceEnabled, registrationConflict, vad.listening, isVADReady]);
 
   useEffect(() => {
     if (vad.loading) {

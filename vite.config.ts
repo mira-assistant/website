@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '');
 
-  const apiUrl = env.API_URL || 'http://localhost:8000';
+  const apiUrl = env.MIRA_API_URL || 'http://localhost:8000';
   const beta = env.BETA || '';
 
   return {
@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
     envDir: __dirname,
     base: '/',
     define: {
-      'process.env.API_URL': JSON.stringify(apiUrl),
+      'process.env.MIRA_API_URL': JSON.stringify(apiUrl),
       'process.env.BETA': JSON.stringify(beta),
     },
     resolve: {

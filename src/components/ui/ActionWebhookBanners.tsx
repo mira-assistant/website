@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ActionWebhookPayload } from '@/types/electron';
+import { subscribeRealtimeMessages } from '@/lib/realtimeClient';
 
 const AUTO_DISMISS_MS = 14_000;
 const MAX_STACK = 4;
@@ -20,12 +21,13 @@ export default function ActionWebhookBanners() {
     setItems(prev => prev.filter(x => x.id !== id));
   }, []);
 
-  useEffect(() => {
-    if (!window.electronAPI?.onWebhookAction) return;
-
-    const cleanup = window.electronAPI.onWebhookAction(body => {
-      const raw = body?.data;
-      if (!raw || typeof raw !== 'object' || typeof (raw as ActionWebhookPayload).action_type !== 'string') {
+  const pushActionPayload = useCallback(
+    (raw: unknown) => {
+      if (
+        !raw ||
+        typeof raw !== 'object' ||
+        typeof (raw as ActionWebhookPayload).action_type !== 'string'
+      ) {
         return;
       }
       const data = raw as ActionWebhookPayload;
@@ -36,10 +38,28 @@ export default function ActionWebhookBanners() {
 
       setItems(prev => [{ id, data }, ...prev].slice(0, MAX_STACK));
       window.setTimeout(() => dismiss(id), AUTO_DISMISS_MS);
+    },
+    [dismiss]
+  );
+
+  useEffect(() => {
+    const offWs = subscribeRealtimeMessages(msg => {
+      if (msg.event !== 'action') return;
+      pushActionPayload(msg.data);
     });
 
-    return cleanup;
-  }, [dismiss]);
+    let offElectron: (() => void) | undefined;
+    if (window.electronAPI?.onWebhookAction) {
+      offElectron = window.electronAPI.onWebhookAction(body => {
+        pushActionPayload(body?.data);
+      });
+    }
+
+    return () => {
+      offWs();
+      if (offElectron) offElectron();
+    };
+  }, [pushActionPayload]);
 
   return (
     <div

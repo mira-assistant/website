@@ -1,36 +1,29 @@
-# Mira desktop app
+# Mira website
 
-Electron shell with a **Vite + React** renderer and a TypeScript main process.
+Vite + React SPA. See [`.env.example`](./.env.example) for `MIRA_API_URL` and `BETA`.
 
 ## Development
 
-From this directory, with a `.env` at the project root (`desktop-app/.env`) defining at least `API_URL` (and optionally `BETA`):
-
 ```bash
+npm install
 npm run dev
 ```
 
-This runs the Vite dev server on **http://localhost:5173**, recompiles the main process on change, and launches Electron against that URL.
+## Environment (`MIRA_API_URL`, `BETA`)
 
-## Production
+- **`MIRA_API_URL`** — API origin **without** `/api/v1` (that suffix is added in code).
+- **`BETA`** — exactly `true` selects `/api/v2`; anything else (including unset) uses **`/api/v1`**. Production builds should use **`BETA=false`**.
 
-- **`npm run build`** — Compiles the UI (`renderer/dist/`) and main process (`dist/main/`). Does not open a window.
-- **`npm start`** — Runs Electron in production mode against the **last** `npm run build` output. Run `build` first (or use `package`, which runs `build` for you).
+Copy `.env.example` to `.env` (or `.env.local`) for local development.
 
-```bash
-npm run build
-npm start
-```
+## Using a production API from localhost
 
-**`npm run package`** — Same as a fresh `build`, then creates installers via `electron-builder`.
+Set `MIRA_API_URL` in `.env` to your deployed API (e.g. Railway). The app uses **HTTPS REST** and **`wss://`** for realtime events, so this works from `npm run dev` without tunnels.
 
-**`npm run clean`** — Deletes `dist/`, `renderer/dist/`, and `release/` when you want a full wipe (optional; `build` already clears `dist` and `renderer/dist` before compiling).
+Your backend must **allow the browser origin** (e.g. `http://localhost:5173`) for both HTTP and WebSocket if you restrict `CORS_ORIGINS` (wildcard `*` already allows everything).
 
-## Environment
+## Production builds (CI / hosting)
 
-The same `.env` keys are used as before:
+Set `MIRA_API_URL` and `BETA=false` in the environment (or write a `.env.production` with those keys) **before** `vite build` so values are inlined.
 
-- `API_URL` — backend base URL (no `/api/v1` suffix; that is added in code).
-- `BETA` — set to `true` to use `/api/v2` instead of `/api/v1`.
-
-The main process loads `.env` via `main/env.ts`. The renderer gets `API_URL` and `BETA` inlined at build time via Vite `define` (and `loadEnv` in dev).
+On **GitHub Actions**, expose the org secret to the build (e.g. `MIRA_API_URL: ${{ secrets.MIRA_API_URL }}`) so `vite build` inlines the same value as the Electron release pipeline.

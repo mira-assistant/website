@@ -7,6 +7,7 @@ import { conversationsApi } from '@/lib/api/conversations';
 import { useService } from '@/hooks/useService';
 import { useToast } from '@/contexts/ToastContext';
 import Modal from '@/components/ui/Modal';
+import { subscribeRealtimeMessages } from '@/lib/realtimeClient';
 
 const ORPHAN_KEY = '__orphan__';
 
@@ -215,12 +216,13 @@ export default function InteractionPanel() {
     loadData();
   }, [isConnected, showToast]);
 
-  // Listen for new interactions via webhook
+  // New interactions: WebSocket + optional Electron IPC (legacy)
   useEffect(() => {
-    if (!window.electronAPI) return;
+    if (!isConnected) return;
 
-    const handleNewInteraction = async (payload: any) => {
-      const interaction: Interaction = payload.data;
+    const handleNewInteraction = async (payload: { data?: Interaction }) => {
+      const interaction = payload.data;
+      if (!interaction) return;
 
       let handledSync = false;
       setConversationGroups(prev => {
@@ -250,7 +252,7 @@ export default function InteractionPanel() {
         return;
       }
 
-      const convId = interaction.conversation_id.trim();
+      const convId = interaction.conversation_id!.trim();
 
       try {
         const conversation = await conversationsApi.getById(convId);
@@ -285,12 +287,23 @@ export default function InteractionPanel() {
       }
     };
 
-    const cleanup = window.electronAPI.onNewInteraction(handleNewInteraction);
+    const offWs = subscribeRealtimeMessages(msg => {
+      if (msg.event !== 'interaction') return;
+      const data = msg.data;
+      if (!data || typeof data !== 'object') return;
+      void handleNewInteraction({ data: data as Interaction });
+    });
+
+    let offElectron: (() => void) | undefined;
+    if (window.electronAPI?.onNewInteraction) {
+      offElectron = window.electronAPI.onNewInteraction(handleNewInteraction);
+    }
 
     return () => {
-      if (cleanup) cleanup();
+      offWs();
+      if (offElectron) offElectron();
     };
-  }, []);
+  }, [isConnected]);
 
   // Fetch person details
   useEffect(() => {

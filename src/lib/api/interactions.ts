@@ -47,7 +47,7 @@ export const interactionsApi = {
    * POST /api/v1/interactions/register
    *
    * Returns 204 No Content immediately
-   * Actual interaction data comes via webhook
+   * Actual interaction data is pushed over the realtime WebSocket
    */
   async register(
     audioData: ArrayBuffer,
