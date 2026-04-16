@@ -9,9 +9,11 @@ type RealtimeHandler = (msg: RealtimeMessage) => void;
 const listeners = new Set<RealtimeHandler>();
 let ws: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let stopped = true;
 let reconnectAttempt = 0;
 let connectOpts: { getAccessToken: () => Promise<string | null>; clientId: string } | null = null;
+const HEARTBEAT_INTERVAL_MS = 20_000;
 
 function emit(msg: RealtimeMessage) {
   listeners.forEach((h) => {
@@ -34,6 +36,13 @@ function clearReconnectTimer() {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
+  }
+}
+
+function clearHeartbeatTimer() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
   }
 }
 
@@ -70,6 +79,11 @@ async function openSocket() {
   ws.onopen = () => {
     reconnectAttempt = 0;
     console.log('[Realtime] connected');
+    clearHeartbeatTimer();
+    heartbeatTimer = setInterval(() => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ type: 'ping' }));
+    }, HEARTBEAT_INTERVAL_MS);
   };
 
   ws.onmessage = (ev) => {
@@ -86,6 +100,7 @@ async function openSocket() {
   };
 
   ws.onclose = () => {
+    clearHeartbeatTimer();
     ws = null;
     if (!stopped) {
       console.warn('[Realtime] disconnected, reconnecting…');
@@ -113,6 +128,7 @@ export function stopRealtimeClient(): void {
   stopped = true;
   connectOpts = null;
   clearReconnectTimer();
+  clearHeartbeatTimer();
   reconnectAttempt = 0;
   if (ws) {
     ws.onclose = null;

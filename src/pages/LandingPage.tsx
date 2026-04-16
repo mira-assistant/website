@@ -8,7 +8,8 @@ import {
   useReducedMotion,
 } from 'framer-motion';
 
-const DESKTOP_APP_URL = import.meta.env.VITE_DESKTOP_APP_URL || '#get-app';
+const DESKTOP_APP_URL =
+  import.meta.env.VITE_DESKTOP_APP_URL || 'https://github.com/mira-assistant/desktop-app/releases';
 
 function FloatingAppMockup() {
   const reduce = useReducedMotion();
@@ -364,8 +365,9 @@ export default function LandingPage() {
                 </h2>
                 <p className="mt-4 text-lg text-slate-600">
                   The desktop app adds secure token storage, OAuth sign-in, and webhook bridges for power
-                  users. Set <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm">VITE_DESKTOP_APP_URL</code>{' '}
-                  to your download or releases page—the &quot;Get the app&quot; buttons will point there.
+                  users. By default, the &quot;Get the app&quot; buttons open the latest desktop release page.
+                  Set <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm">VITE_DESKTOP_APP_URL</code>{' '}
+                  to override this destination.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">
                   <a

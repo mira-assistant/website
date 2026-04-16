@@ -5,6 +5,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { serviceApi } from '@/lib/api/service';
 import { getStoredClientName, setStoredClientName } from '@/lib/clientNameStorage';
 import { startRealtimeClient, stopRealtimeClient, subscribeRealtimeMessages } from '@/lib/realtimeClient';
+import { webTokenStore } from '@/lib/webTokenStore';
 
 interface ServiceContextType {
   isServiceEnabled: boolean;
@@ -112,6 +113,28 @@ export function ServiceProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated || !isConnected) return;
 
+    const sendCloseDeregister = () => {
+      if (!isRegisteredRef.current) return;
+
+      if (window.electronAPI) {
+        window.electronAPI.deregisterClient();
+        return;
+      }
+
+      const accessToken = webTokenStore.get()?.accessToken;
+      if (!accessToken) return;
+      const baseUrl = process.env.MIRA_API_URL || 'http://localhost:8000';
+      const prefix = process.env.BETA === 'true' ? '/api/v2' : '/api/v1';
+      const endpoint = `${baseUrl.replace(/\/$/, '')}${prefix}/service/clients/${encodeURIComponent(clientName)}`;
+      void fetch(endpoint, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${accessToken}` },
+        keepalive: true,
+      }).catch(() => {
+        /* best-effort cleanup only */
+      });
+    };
+
     const deregisterClient = async () => {
       if (!isRegisteredRef.current) return;
 
@@ -126,16 +149,15 @@ export function ServiceProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    const handleBeforeUnload = () => {
-      if (isRegisteredRef.current && window.electronAPI) {
-        window.electronAPI.deregisterClient();
-      }
-    };
+    const handleBeforeUnload = () => sendCloseDeregister();
+    const handlePageHide = () => sendCloseDeregister();
 
     window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
       deregisterClient();
     };
   }, [clientName, isAuthenticated, isConnected]);
