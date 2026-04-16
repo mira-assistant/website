@@ -188,9 +188,6 @@ export default function Header({ isPeoplePanelOpen, setIsPeoplePanelOpen }: Head
           <i className="fas fa-microphone-alt" />
           Mira
         </Link>
-        <span className="px-2 py-0.5 text-xs font-medium text-[#00cc6a] bg-[#e6fffa] rounded-xl">
-          v6.0.1
-        </span>
       </div>
 
       <div className="flex items-center gap-6">
